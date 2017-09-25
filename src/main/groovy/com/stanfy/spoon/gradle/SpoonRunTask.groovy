@@ -125,21 +125,17 @@ class SpoonRunTask extends DefaultTask implements VerificationTask {
     LOG.debug("numShards: $numShards")
     LOG.debug("shardIndex: $shardIndex")
 
-    String cp = getClasspath()
-    LOG.debug("Classpath: $cp")
-
     SpoonRunner.Builder runBuilder = new SpoonRunner.Builder()
         .setTerminateAdb(false)
         .setTitle(title)
-        .setApplicationApk(applicationApk)
-        .setInstrumentationApk(instrumentationApk)
+        .addOtherApk(applicationApk)
+        .setTestApk(instrumentationApk)
         .setOutputDirectory(output)
-        .setFailIfNoDeviceConnected(failIfNoDeviceConnected)
+        .setAllowNoDevices(!failIfNoDeviceConnected)
         .setDebug(debug)
         .setClassName(className)
         .setMethodName(methodName)
         .setAndroidSdk(project.android.sdkDirectory)
-        .setClasspath(cp)
         .setNoAnimations(noAnimations)
         .setCodeCoverage(codeCoverage)
         .setShard(shard)
@@ -174,7 +170,6 @@ class SpoonRunTask extends DefaultTask implements VerificationTask {
       }
     }
     if (allDevices) {
-      runBuilder.useAllAttachedDevices()
       LOG.info("Using all the attached devices")
     } else {
       if (!devices) {
@@ -250,32 +245,4 @@ class SpoonRunTask extends DefaultTask implements VerificationTask {
       checkDependencies(dep, classpath, allDeps)
     }
   }
-
-  private String getClasspath() {
-    def (pluginDep, usedProject) = lookupDependency(PLUGIN_DEP_NAME)
-    if (!pluginDep) {
-      throw new IllegalStateException("Could not resolve spoon dependencies")
-    }
-
-    ResolvedDependency spoon = pluginDep.children.find { it.name.startsWith SpoonRunTask.SPOON_DEP_NAME } as ResolvedDependency
-    if (!spoon) { throw new IllegalStateException("Cannot find spoon-runner in dependencies") }
-    // Collect spoon dependencies.
-    def classpath = new HashSet(), allDeps = []
-    collectDependencies(spoon, classpath, allDeps)
-    // Add spoon runner.
-    classpath += pluginDep.allModuleArtifacts.find { it.name == SpoonRunTask.SPOON_RUNNER_ARTIFACT }.file
-
-    /*
-     * XXX Due to how Gradle dependencies resolution works we can get not all the required deps from the step above.
-     *     For example spoon dep is com.android.tools.ddms:ddmlib:23.2.1.
-     *     If you use Android plugin 1.1.3, ddmlib will be resolved to 24.1.3. And its dependencies will not traversed yet.
-     *     Hence, we traverse the whole tree again and pick up those parts of the tree that we miss.
-     */
-    usedProject.buildscript.configurations.classpath.resolvedConfiguration.firstLevelModuleDependencies.each {
-      SpoonRunTask.checkDependencies((ResolvedDependency) it, classpath, allDeps)
-    }
-
-    return project.files(classpath).asPath
-  }
-
 }

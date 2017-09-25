@@ -31,13 +31,14 @@ targetCompatibility = 1.6
 repositories {
   mavenCentral()
   mavenLocal()
+  jcenter()
 }
 
 dependencies {
   compile gradleApi()
   compile localGroovy()
 
-  compile 'com.squareup.spoon:spoon-runner:1.7.1'
+  compile 'com.squareup.spoon:spoon-runner:2.0.0-SNAPSHOT'
 
   compile 'com.android.tools.build:gradle:1.5.0'
 
